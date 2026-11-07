@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>উত্তরণ একাডেমি</title>
+<style>
+:root{--bg:#f6f7fb;--sf:#fff;--tx:#1b2330;--mu:#667085;--pr:#2457d6;--bd:#e3e6ee;--ok:#15803d;--no:#b42318;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141c;--sf:#1a2030;--tx:#e8ecf4;--mu:#98a2b3;--pr:#6c93ff;--bd:#2b3347;--ok:#4ade80;--no:#f87171;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141c;--sf:#1a2030;--tx:#e8ecf4;--mu:#98a2b3;--pr:#6c93ff;--bd:#2b3347;--ok:#4ade80;--no:#f87171;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Noto Sans Bengali","Hind Siliguri",system-ui,sans-serif}
+header{padding:12px 14px;background:var(--pr);color:#fff;display:flex;gap:8px;align-items:center;justify-content:space-between}
+header b{font-size:17px}select,input,textarea,button{font:inherit;color:var(--tx)}
+header select{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:8px;padding:6px}
+header select option{color:#000}
+nav{display:flex;overflow-x:auto;gap:6px;padding:8px;background:var(--sf);border-bottom:1px solid var(--bd);position:sticky;top:0}
+nav button{white-space:nowrap;border:1px solid var(--bd);background:var(--bg);border-radius:20px;padding:6px 12px;cursor:pointer}
+nav button.on{background:var(--pr);color:#fff;border-color:var(--pr)}
+main{padding:12px;max-width:720px;margin:auto}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+form{display:grid;gap:8px}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg)}
+.btn{background:var(--pr);color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.row:last-child{border:0}.mu{color:var(--mu);font-size:13px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}.n{font-size:26px;font-weight:700;color:var(--pr)}
+.p,.a{border:1px solid var(--bd);background:var(--bg);border-radius:8px;padding:5px 12px;cursor:pointer}
+.p.on{background:var(--ok);color:#fff}.a.on{background:var(--no);color:#fff}
+.x{background:none;border:0;color:var(--no);cursor:pointer}
+.me{background:var(--pr);color:#fff;margin-left:auto}.msg{max-width:85%;padding:8px 10px;border-radius:10px;background:var(--bg);margin:6px 0}
+a{color:var(--pr)}
+</style></head><body>
+<header><b>🎓 উত্তরণ একাডেমি</b><select id="bs"></select></header>
+<nav id="nav"></nav><main id="m"></main>
+<script>
+const C={batches:[],students:[],att:[],fees:[],results:[],notices:[],classes:[],chat:[]};
+const TABS=[['dash','ড্যাশবোর্ড'],['students','শিক্ষার্থী'],['att','হাজিরা'],['fees','ফি'],['results','রেজাল্ট'],['notices','নোটিশ/রুটিন'],['classes','ক্লাস'],['chat','চ্যাট']];
+let db=null,tab='dash',batch='all',admin=false,me='শিক্ষক',late=false;
+const today=()=>new Date().toISOString().slice(0,10);
+const E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const bn=id=>(C.batches.find(b=>b.id===id)||{}).name||'সব ব্যাচ';
+const sn=id=>(C.students.find(s=>s.id===id)||{}).name||'—';
+const inB=x=>batch==='all'||x.batch===batch;
+const stu=()=>C.students.filter(inB);
+const bopts=(all)=>(all?'<option value="all">সব ব্যাচ</option>':'')+C.batches.map(b=>`<option value="${b.id}" ${b.id===batch?'selected':''}>${E(b.name)}</option>`).join('');
+const sopts=()=>stu().map(s=>`<option value="${s.id}">${E(s.name)}</option>`).join('');
+const inp=(n,p,t='text')=>`<input name="${n}" type="${t}" placeholder="${p}" required>`;
+const form=(col,body,btn='যোগ করুন')=>`<form class="card" data-col="${col}">${body}<button class="btn">${btn}</button></form>`;
+const del=(col,id)=>admin?`<button class="x" data-del="${col}/${id}">মুছুন</button>`:'';
+function view(){
+ if(tab==='dash'){
+  const t=today(),pr=C.att.filter(a=>a.date===t&&a.st==='P'&&inB(a)).length;
+  const m=t.slice(0,7),fee=C.fees.filter(f=>f.month===m&&inB(f)).reduce((s,f)=>s+Number(f.amount||0),0);
+  return `<div class="g"><div class="card"><div class="n">${stu().length}</div>শিক্ষার্থী</div><div class="card"><div class="n">${pr}</div>আজ উপস্থিত</div><div class="card"><div class="n">৳${fee}</div>এই মাসের ফি</div><div class="card"><div class="n">${C.batches.length}</div>ব্যাচ</div></div>
+  ${admin?form('batches',inp('name','নতুন ব্যাচের নাম (যেমন: HSC 2027 উচ্চতর গণিত)'),'ব্যাচ খুলুন')+C.batches.map(b=>`<div class="row">${E(b.name)}${del('batches',b.id)}</div>`).join(''):''}
+  <h4>সাম্প্রতিক নোটিশ</h4>`+C.notices.filter(n=>batch==='all'||n.batch==='all'||n.batch===batch).sort((a,b)=>b.date>a.date?1:-1).slice(0,3).map(n=>`<div class="card">${E(n.text)}<div class="mu">${n.date}</div></div>`).join('');
+ }
+ if(tab==='students')return form('students',inp('name','নাম')+inp('phone','মোবাইল','tel')+inp('roll','রোল')+`<select name="batch">${bopts()}</select>`)+`<div class="card">${stu().map(s=>`<div class="row"><div>${E(s.name)} <span class="mu">রোল ${E(s.roll)} · ${E(s.phone)}<br>${E(bn(s.batch))}</span></div>${del('students',s.id)}</div>`).join('')||'<span class="mu">কেউ নেই</span>'}</div>`;
+ if(tab==='att'){
+  const d=window.ad||today();
+  return `<div class="card"><input type="date" id="ad" value="${d}"></div><div class="card">${stu().map(s=>{const a=C.att.find(x=>x.id===d+'_'+s.id);const v=a&&a.st;return `<div class="row"><span>${E(s.name)}</span><span><button class="p ${v==='P'?'on':''}" data-at="${s.id}|P">উপস্থিত</button> <button class="a ${v==='A'?'on':''}" data-at="${s.id}|A">অনুপস্থিত</button></span></div>`}).join('')||'<span class="mu">আগে শিক্ষার্থী যোগ করুন</span>'}</div>`;
+ }
+ if(tab==='fees')return form('fees',`<select name="sid">${sopts()}</select><input name="month" type="month" value="${today().slice(0,7)}" required>`+inp('amount','টাকা','number'))+`<div class="card">${C.fees.filter(inB).sort((a,b)=>b.month>a.month?1:-1).map(f=>`<div class="row"><span>${E(sn(f.sid))}<br><span class="mu">${f.month}</span></span><b>৳${f.amount}</b>${del('fees',f.id)}</div>`).join('')}</div>`;
+ if(tab==='results')return form('results',`<select name="sid">${sopts()}</select>`+inp('exam','পরীক্ষার নাম')+inp('marks','প্রাপ্ত নম্বর','number')+inp('total','পূর্ণমান','number'))+`<div class="card">${C.results.filter(inB).map(r=>`<div class="row"><span>${E(sn(r.sid))}<br><span class="mu">${E(r.exam)}</span></span><b>${r.marks}/${r.total}</b>${del('results',r.id)}</div>`).join('')}</div>`;
+ if(tab==='notices')return form('notices',`<select name="type"><option>নোটিশ</option><option>রুটিন</option></select><select name="batch">${bopts(1)}</select><textarea name="text" rows="3" placeholder="লিখুন" required></textarea>`,'প্রকাশ করুন')+C.notices.filter(n=>batch==='all'||n.batch==='all'||n.batch===batch).sort((a,b)=>b.date>a.date?1:-1).map(n=>`<div class="card"><b>${E(n.type)}</b> · <span class="mu">${E(bn(n.batch))} · ${n.date}</span><div>${E(n.text).replace(/\n/g,'<br>')}</div>${del('notices',n.id)}</div>`).join('');
+ if(tab==='classes')return form('classes',inp('title','ক্লাসের শিরোনাম')+inp('url','ভিডিও/নোটের লিংক','url')+`<select name="batch">${bopts()}</select>`,'আপলোড')+C.classes.filter(inB).sort((a,b)=>b.date>a.date?1:-1).map(c=>`<div class="card"><a href="${E(c.url)}" target="_blank" rel="noopener">▶ ${E(c.title)}</a><div class="mu">${E(bn(c.batch))} · ${c.date}</div>${del('classes',c.id)}</div>`).join('');
+ if(tab==='chat')return `<div class="card" id="cl" style="min-height:240px;max-height:55vh;overflow:auto">${C.chat.filter(c=>c.batch===batch).sort((a,b)=>a.ts-b.ts).map(c=>`<div class="msg ${c.by===me?'me':''}"><div class="mu" style="color:inherit;opacity:.8">${E(c.by)}</div>${E(c.text)}</div>`).join('')||'<span class="mu">এই ব্যাচের চ্যাট ফাঁকা</span>'}</div>${form('chat','<input name="text" placeholder="বার্তা লিখুন…" required autocomplete="off">','পাঠান')}`;
+}
+function render(){
+ if(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName)&&document.activeElement.id!=='ad'){late=true;return}
+ late=false;
+ document.getElementById('bs').innerHTML=bopts(1);
+ document.getElementById('nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}" class="${t[0]===tab?'on':''}">${t[1]}</button>`).join('');
+ document.getElementById('m').innerHTML=view();
+ const cl=document.getElementById('cl');if(cl)cl.scrollTop=1e9;
+}
+document.addEventListener('focusout',()=>{if(late)setTimeout(render,50)});
+document.addEventListener('click',async e=>{
+ const t=e.target;
+ if(t.dataset.t){tab=t.dataset.t;render()}
+ if(t.dataset.at&&db){const[s,v]=t.dataset.at.split('|'),d=window.ad||today();
+  db.collection('att').doc(d+'_'+s).set({date:d,sid:s,st:v,batch:(C.students.find(x=>x.id===s)||{}).batch}).catch(()=>{})}
+ if(t.dataset.del&&db){const[c,i]=t.dataset.del.split('/');db.collection(c).doc(i).delete().catch(()=>{})}
+});
+document.addEventListener('change',e=>{
+ if(e.target.id==='bs'){batch=e.target.value;render()}
+ if(e.target.id==='ad'){window.ad=e.target.value;render()}
+});
+document.addEventListener('submit',async e=>{
+ e.preventDefault();const f=e.target;if(!db||!f.dataset.col)return;
+ const o=Object.fromEntries(new FormData(f));o.date=today();
+ if(o.sid){o.batch=(C.students.find(s=>s.id===o.sid)||{}).batch}
+ if(f.dataset.col==='chat'){o.batch=batch;o.by=me;o.ts=Date.now()}
+ if(f.dataset.col==='batches'){delete o.date}
+ try{await db.collection(f.dataset.col).add(o);f.reset()}catch(x){alert('সংরক্ষণ করা যায়নি')}
+});
+render();
+(async()=>{
+ try{const u=await claude.use('user');if(u){admin=u.canEdit();try{const p=await u.me();me=p.name||me}catch(_){}}
+  db=await claude.use('db');
+  if(db)Object.keys(C).forEach(k=>db.collection(k).onSnapshot(s=>{C[k]=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{}));
+  render();
+ }catch(_){}
+})();
+</script></body></html>
